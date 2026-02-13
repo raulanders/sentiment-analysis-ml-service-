@@ -1,148 +1,168 @@
-# 🧠 Sentiment Analysis ML Service (ES/PT)
+# 🧠 Sentiment Analysis ML Service (ES / PT)
 
-Microservicio de análisis de sentimiento para español y portugués, desarrollado como componente de Data Science dentro de una arquitectura full-stack.
+Production-ready sentiment analysis microservice for Spanish and Portuguese.
 
-Este repositorio concentra mi contribución técnica en:
-
-- Pipeline ETL
-- Modelado clásico (TF-IDF + Regresión Logística)
-- Fine-tuning de Transformer (RoBERTa)
-- Implementación de API con FastAPI
-- Dockerización para despliegue reproducible
+This repository contains my Data Science and ML Engineering contribution within a full-stack architecture.
 
 ---
 
-## 🎯 Objetivo
+## 👨‍💻 My Technical Contribution
 
-Construir, comparar y desplegar modelos capaces de clasificar comentarios en:
+I was responsible for:
 
-- NEGATIVO  
-- NEUTRO  
-- POSITIVO  
-
-Evaluando no solo desempeño (Accuracy, F1), sino también robustez semántica y viabilidad de producción.
-
----
-
-# ⚙ Arquitectura del Proyecto
-
-El proyecto cubre el ciclo completo: `ETL → Entrenamiento → Evaluación → Persistencia → API → Docker`
-
+- Designing and implementing the complete ETL pipeline (ES & PT)
+- Training and comparing classical ML models
+- Training TF-IDF + Logistic Regression (ES / PT)
+- Fine-tuning RoBERTa (PT)
+- Model evaluation and metric comparison
+- FastAPI inference microservice
+- Docker containerization
 
 ---
 
-## 🗂 1. ETL (Extracción y Preparación de Datos)
+# 🎯 Problem
 
-Implementación de pipeline para:
+Automatically classify customer feedback into:
 
-- Limpieza y normalización de texto
-- Eliminación de nulos y duplicados
-- Etiquetado desde estrellas (1–2 negativo, 3 neutro, 4–5 positivo)
-- Muestreo estratificado
-- Consistencia entre datasets ES y PT
+- NEGATIVE  
+- NEUTRAL  
+- POSITIVE  
 
-El objetivo fue generar datasets comparables y robustos para entrenamiento.
-
----
-
-## 🤖 2. Modelado
-
-### Baseline Clásico – TF-IDF + Regresión Logística
-
-Resultados (Portugués):
-
-- Accuracy: **0.872**
-- F1 Macro: **0.780**
-- F1 Weighted: **0.871**
-
-Ventajas:
-
-- Bajo costo computacional
-- Inferencia rápida en CPU
-- Alta escalabilidad
+With emphasis on:
+- Class robustness (especially NEUTRAL)
+- Production feasibility
+- Cost vs performance tradeoff
 
 ---
 
-### Transformer – RoBERTa (xlm-roberta-base)
+# ⚙ System Architecture
 
-Resultados:
 
-- Accuracy: **0.857**
-- F1 Macro: **0.835**
-- F1 Weighted: **0.858**
+ETL → Training → Evaluation → Model Persistence → FastAPI → Docker
 
-Hallazgo clave:
 
-Aunque el accuracy global fue ligeramente menor, RoBERTa mejoró el F1 Macro, mostrando mejor balance entre clases y mayor robustez contextual, especialmente en la clase NEUTRO.
+
+The API detects language automatically and routes inference to the appropriate model.
 
 ---
 
-# 🚀 3. API – FastAPI
+# 📊 Modeling Strategy
 
-Implementé un microservicio en FastAPI que:
+## Classical Models (Baseline)
 
-- Carga modelos una sola vez al iniciar la aplicación
-- Detecta automáticamente el idioma (ES/PT)
-- Enruta dinámicamente al modelo correspondiente
-- Expone endpoints REST:
+- Decision Tree
+- Naive Bayes
+- TF-IDF + Logistic Regression (ES & PT)
 
-```
-GET / → Estado básico
+### Best Classical Model (Spanish)
+
+**TF-IDF + Logistic Regression**
+
+- Accuracy: 0.734
+- F1 Macro: 0.678
+- Strong performance on NEGATIVE and POSITIVE
+- Main limitation: NEUTRAL class ambiguity
+
+---
+
+## Transformers
+
+### BETO (Spanish)
+
+- Accuracy: 0.7849
+- F1 Macro: 0.7255
+- Strong contextual understanding
+- Improved performance over classical models
+
+### RoBERTa (Portuguese)
+
+- Fine-tuned `xlm-roberta-base`
+- Optimized for macro F1
+- Better contextual generalization
+- Selected as final PT production model
+
+---
+
+# 🔍 Key Finding
+
+The main bottleneck in sentiment analysis is not extreme polarity detection,
+but correct classification of NEUTRAL class.
+
+Transformers significantly improve contextual robustness,
+especially for ambiguous and mixed-sentiment samples.
+
+---
+
+# 🚀 FastAPI Inference Service
+
+Production-ready REST API:
+
+### Endpoints
+
+
+GET / → Service status
 GET /health → Health check
-POST /predict → Predicción de sentimiento
+POST /predict → Sentiment prediction
+
+
+
+### Features
+
+- Single model load at startup
+- Automatic language detection (ES/PT)
+- Dynamic routing (LogReg or RoBERTa)
+- Structured JSON response:
+    - predicted class
+    - probability
+- Input validation (Pydantic)
+- Docker compatible
+
+---
+
+# 📦 Model Artifacts
+
+Due to GitHub file size limits, trained models are stored externally:
+
+🔗 Google Drive:
+https://drive.google.com/drive/u/0/folders/1E9DPet3ManYqEAx_veyYyl51pNZ8OXxp
+
+After downloading, place inside:
+
+- `model_roberta_pt`
+- `modelo_beto_es`
+
+After downloading, place them inside:
+
+api/models/
+
+---
+
+# 🐳 Docker
+
+Build:
+
+```bash
+docker build -t sentiment-api .
 ```
 
-Incluye:
+Run:
+```
+docker run -p 8000:8000 sentiment-api
+```
 
-- Validación de entrada con Pydantic
-- Manejo controlado de errores HTTP
-- Contrato consistente de salida (clase + probabilidad)
-- Compatibilidad local y en contenedor Docker
+🧪 Example Request
 
----
+```
+POST /predict
+{
+  "text": "El servicio fue excelente"
+}
+```
+Response:
 
-# 🐳 4. Docker
-
-El servicio fue dockerizado para:
-
-- Aislamiento de dependencias
-- Entorno reproducible
-- Portabilidad entre desarrollo y producción
-- Integración sencilla con backend (Spring Boot)
-
----
-
-# 📊 Enfoque de decisión técnica
-
-Se realizó análisis costo-beneficio entre modelos clásicos y Transformers considerando:
-
-- Desempeño (Accuracy, F1)
-- Robustez en clase NEUTRO
-- Latencia
-- Escalabilidad
-- Costo computacional (CPU vs GPU)
-
-Decisión arquitectónica:
-
-- RoBERTa como modelo principal cuando la prioridad es calidad.
-- TF-IDF + Regresión Logística como fallback ligero y altamente escalable.
-
----
-
-# 🏗 Stack Tecnológico
-
-- Python
-- Pandas
-- NumPy
-- Scikit-learn
-- Hugging Face Transformers
-- PyTorch
-- FastAPI
-- Docker
-
----
-
-# 📌 Contexto
-
-Este repositorio corresponde a mi contribución técnica dentro de un proyecto full-stack desarrollado en equipo, donde fui responsable del pipeline de datos, modelado y despliegue del microservicio de inferencia.
-
+```
+{
+  "prevision": "POSITIVO",
+  "probabilidad": 0.94
+}
+```
